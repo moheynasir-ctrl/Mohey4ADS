@@ -1,0 +1,15 @@
+  <link rel="stylesheet" href=" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=El+Messiri:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    /* ضمان أن عناصر إشعار العد تظهر بمكان مناسب إن لم يرد لها ستايل في style.css */
+    #notificationCount { font-weight:700; color:#fff; background:#e74c3c; padding:4px 8px; border-radius:12px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <!-- عناصر طافية زخرفية -->
+  <div class="floating-elements">
+    <div class="floating-element" style="top:10%; left:5%;">🚌</div>
+    <div class="floating-element" style="top:20%; right:10%;">🧳</div>
+    <div class="floating-element" style="bottom:30%; left:15%;">⚡</div>
+  </div>
