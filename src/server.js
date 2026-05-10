@@ -3,7 +3,7 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { parse } = require('csv-parse/sync');
-const { publishAll, publishOne, getAds } = require('./publisher');
+const { publishAll, publishOne, getAds, initScheduler } = require('./publisher');
 
 require('dotenv').config();
 
@@ -35,6 +35,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         images: (r.images || '').split('|').map(s => s.trim()).filter(Boolean),
         location: r.location || '',
         account: r.account || '',
+        platform: (r.platform || '').toLowerCase() || 'facebook',
         schedule: r.schedule || ''
       }));
     } else if (ext === '.json') {
@@ -45,6 +46,10 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 
     const dataPath = path.join(DATA_DIR, 'ads.json');
     fs.writeFileSync(dataPath, JSON.stringify(ads, null, 2));
+
+    // re-init scheduler after upload
+    try { initScheduler(); } catch (e) { console.warn('Failed to init scheduler:', e); }
+
     return res.json({ message: 'Uploaded', count: ads.length, ads });
   } catch (err) {
     console.error(err);
@@ -90,6 +95,9 @@ app.get('/logs', (req, res) => {
     res.status(500).send('Failed to read logs');
   }
 });
+
+// Initialize scheduler when server starts
+try { initScheduler(); } catch (e) { console.warn('Scheduler init failed:', e); }
 
 app.listen(PORT, () => {
   console.log(`Mohey4ADS server listening on http://localhost:${PORT}`);
