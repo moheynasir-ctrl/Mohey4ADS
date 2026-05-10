@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mohey4ADS — نشر إعلانات (MVP)</title>
+  <link rel="stylesheet" href="/main.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Mohey4ADS — نشر إعلانات</h1>
+
+    <section class="card">
+      <h2>رفع ملف (CSV or JSON)</h2>
+      <form id="uploadForm">
+        <input type="file" name="file" id="file" accept=".csv,.json" required>
+        <button type="submit">Upload</button>
+      </form>
+      <p>تنسيق CSV المقترح: title,description,price,images,location,account,schedule</p>
+    </section>
+
+    <section class="card">
+      <h2>قائمة الإعلانات</h2>
+      <button id="refresh">تحديث</button>
+      <button id="publishAll">نشر الكل</button>
+      <div id="adsList">لا توجد إعلانات محمّلة.</div>
+    </section>
+
+    <section class="card">
+      <h2>السجل (logs)</h2>
+      <pre id="logs">لا يوجد سجل حتى الآن.</pre>
+    </section>
+
+  </div>
+  <script src="/main.js"></script>
+</body>
+</html>
