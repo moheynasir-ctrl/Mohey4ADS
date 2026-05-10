@@ -3,7 +3,8 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { parse } = require('csv-parse/sync');
-const { publishAll, publishOne, getAds, initScheduler } = require('./publisher');
+const { publishAll, publishOne, getAds } = require('./publisher');
+const cron = require('node-cron');
 
 require('dotenv').config();
 
@@ -35,21 +36,18 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         images: (r.images || '').split('|').map(s => s.trim()).filter(Boolean),
         location: r.location || '',
         account: r.account || '',
-        platform: (r.platform || '').toLowerCase() || 'facebook',
-        schedule: r.schedule || ''
+        platform: (r.platform || 'facebook').toLowerCase(),
+        schedule: r.schedule || '',
+        published: false
       }));
     } else if (ext === '.json') {
-      ads = JSON.parse(raw);
+      ads = JSON.parse(raw).map(a => ({ ...a, platform: (a.platform || 'facebook').toLowerCase(), images: a.images || [], published: !!a.published }));
     } else {
       return res.status(400).json({ error: 'Unsupported file type' });
     }
 
     const dataPath = path.join(DATA_DIR, 'ads.json');
     fs.writeFileSync(dataPath, JSON.stringify(ads, null, 2));
-
-    // re-init scheduler after upload
-    try { initScheduler(); } catch (e) { console.warn('Failed to init scheduler:', e); }
-
     return res.json({ message: 'Uploaded', count: ads.length, ads });
   } catch (err) {
     console.error(err);
@@ -96,8 +94,25 @@ app.get('/logs', (req, res) => {
   }
 });
 
-// Initialize scheduler when server starts
-try { initScheduler(); } catch (e) { console.warn('Scheduler init failed:', e); }
+// Scheduler: check every minute for scheduled ads
+cron.schedule('* * * * *', async () => {
+  try {
+    const ads = getAds();
+    const now = new Date();
+    for (let i = 0; i < ads.length; i++) {
+      const ad = ads[i];
+      if (ad.published) continue;
+      if (!ad.schedule) continue;
+      const sched = new Date(ad.schedule);
+      if (!isNaN(sched.getTime()) && sched <= now) {
+        console.log('Scheduled publish for index', i, ad.title);
+        await publishOne(i);
+      }
+    }
+  } catch (err) {
+    console.error('Scheduler error:', err);
+  }
+});
 
 app.listen(PORT, () => {
   console.log(`Mohey4ADS server listening on http://localhost:${PORT}`);
