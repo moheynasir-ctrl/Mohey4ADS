@@ -5,7 +5,7 @@
     "price": "200",
     "images": ["https://example.com/bike1.jpg"],
     "location": "جدة",
-    "account": "123456789012345",
+    "account": "",
     "platform": "instagram",
     "schedule": "2026-05-13T12:00:00Z"
   }

@@ -1,49 +1,54 @@
-const fs = require('fs');
-const path = require('path');
 const axios = require('axios');
 
 const PAGE_ID = process.env.FB_PAGE_ID || '';
 const PAGE_TOKEN = process.env.FB_PAGE_ACCESS_TOKEN || '';
 
-if (!PAGE_TOKEN) {
-  console.warn('Warning: FB_PAGE_ACCESS_TOKEN is not set. Facebook publishing will fail until you set it in .env');
+if (!PAGE_TOKEN || !PAGE_ID) {
+  console.warn('FB_PAGE_ID or FB_PAGE_ACCESS_TOKEN not set. Facebook posting will fail until configured.');
 }
 
-const API_BASE = 'https://graph.facebook.com/v15.0';
+const GRAPH = 'https://graph.facebook.com/v17.0';
 
 async function postToFacebook(entry) {
-  if (!PAGE_TOKEN) throw new Error('FB_PAGE_ACCESS_TOKEN not configured');
-  const pageId = entry.account || PAGE_ID;
-  if (!pageId) throw new Error('No FB page id provided (entry.account or FB_PAGE_ID)');
+  if (!PAGE_ID || !PAGE_TOKEN) throw new Error('Facebook Page ID or Access Token not configured');
 
-  const messageParts = [];
-  if (entry.title) messageParts.push(entry.title);
-  if (entry.price) messageParts.push(`السعر: ${entry.price}`);
-  if (entry.location) messageParts.push(`الموقع: ${entry.location}`);
-  if (entry.description) messageParts.push(entry.description);
-  const message = messageParts.join('\n');
-
-  // If images are provided, upload them as photos (will create posts for each photo unless combined)
-  if (entry.images && entry.images.length > 0) {
-    // For simplicity: if one image => upload photo with message; if multiple, upload each without message except first
-    for (let i = 0; i < entry.images.length; i++) {
-      const url = entry.images[i];
-      const params = new URLSearchParams();
-      params.append('url', url);
-      if (i === 0) params.append('caption', message);
-      params.append('access_token', PAGE_TOKEN);
-      const res = await axios.post(`${API_BASE}/${pageId}/photos`, params);
-      // res.data contains id
-    }
-    return { ok: true, method: 'photos' };
+  const caption = buildCaption(entry);
+  // If images provided and look like URLs, post the first image with caption via /{page_id}/photos
+  const urlImages = (entry.images || []).filter(i => isUrl(i));
+  if (urlImages.length > 0) {
+    // Use the first image to keep it simple
+    const photoUrl = urlImages[0];
+    const endpoint = `${GRAPH}/${PAGE_ID}/photos`;
+    const params = {
+      url: photoUrl,
+      caption,
+      access_token: PAGE_TOKEN
+    };
+    const resp = await axios.post(endpoint, null, { params });
+    return { platform: 'facebook', method: 'photos', response: resp.data };
   }
 
-  // Fallback: simple text post
-  const params = new URLSearchParams();
-  params.append('message', message);
-  params.append('access_token', PAGE_TOKEN);
-  const res = await axios.post(`${API_BASE}/${pageId}/feed`, params);
-  return { ok: true, method: 'feed', data: res.data };
+  // Fallback to text post
+  const feedEndpoint = `${GRAPH}/${PAGE_ID}/feed`;
+  const feedParams = {
+    message: caption,
+    access_token: PAGE_TOKEN
+  };
+  const resp = await axios.post(feedEndpoint, null, { params: feedParams });
+  return { platform: 'facebook', method: 'feed', response: resp.data };
+}
+
+function buildCaption(entry) {
+  const parts = [];
+  if (entry.title) parts.push(entry.title);
+  if (entry.price) parts.push(`السعر: ${entry.price}`);
+  if (entry.location) parts.push(`الموقع: ${entry.location}`);
+  if (entry.description) parts.push('\n' + entry.description);
+  return parts.join('\n');
+}
+
+function isUrl(s) {
+  return typeof s === 'string' && /^https?:\/\//i.test(s);
 }
 
 module.exports = { postToFacebook };
